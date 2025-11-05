@@ -25,10 +25,10 @@ publish/
 *.dll
 *.exe
 
-# SQLite DB files (local dev databases)
-*.db
-*.db-shm
-*.db-wal
+# # SQLite DB files (local dev databases)
+# *.db
+# *.db-shm
+# *.db-wal
 
 # coverage
 coverage/
