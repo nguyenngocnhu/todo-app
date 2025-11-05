@@ -2,6 +2,18 @@ import { useEffect, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import todoService from "../services/todoService";
 import TodoItem from "../components/TodoItem";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 export default function TodoPage() {
   const [todos, setTodos] = useState([]);
@@ -13,7 +25,31 @@ export default function TodoPage() {
     setLoading(true);
     try {
       const data = await todoService.getTodos();
-      setTodos(data);
+      // apply saved order from localStorage if present
+      const saved = localStorage.getItem("todoOrder");
+      if (saved) {
+        try {
+          const order = JSON.parse(saved);
+          // create map for quick lookup
+          const map = new Map(data.map((d) => [String(d.id), d]));
+          const ordered = [];
+          // push items in saved order if they still exist
+          for (const id of order) {
+            const it = map.get(String(id));
+            if (it) {
+              ordered.push(it);
+              map.delete(String(id));
+            }
+          }
+          // append any new items returned from server
+          for (const v of data) if (map.has(String(v.id))) ordered.push(v);
+          setTodos(ordered);
+        } catch {
+          setTodos(data);
+        }
+      } else {
+        setTodos(data);
+      }
     } catch {
       setError("Failed to load todos");
     } finally {
@@ -25,6 +61,32 @@ export default function TodoPage() {
     load();
   }, []);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor)
+  );
+
+  function handleDragEnd(event) {
+    const { active, over } = event;
+    if (!over) return;
+    if (active.id !== over.id) {
+      const oldIndex = todos.findIndex(
+        (t) => String(t.id) === String(active.id)
+      );
+      const newIndex = todos.findIndex((t) => String(t.id) === String(over.id));
+      if (oldIndex === -1 || newIndex === -1) return;
+      const newTodos = arrayMove(todos, oldIndex, newIndex);
+      setTodos(newTodos);
+      // persist order client-side so it survives navigation/reload
+      try {
+        localStorage.setItem(
+          "todoOrder",
+          JSON.stringify(newTodos.map((t) => t.id))
+        );
+      } catch {}
+    }
+  }
+
   async function handleAdd(e) {
     e.preventDefault();
     if (!newTitle.trim()) return;
@@ -33,7 +95,16 @@ export default function TodoPage() {
         title: newTitle,
         isCompleted: false,
       });
-      setTodos((prev) => [created, ...prev]);
+      setTodos((prev) => {
+        const next = [created, ...prev];
+        try {
+          localStorage.setItem(
+            "todoOrder",
+            JSON.stringify(next.map((t) => t.id))
+          );
+        } catch {}
+        return next;
+      });
       setNewTitle("");
     } catch {
       setError("Failed to create todo");
@@ -55,7 +126,16 @@ export default function TodoPage() {
   async function handleDelete(id) {
     try {
       await todoService.deleteTodo(id);
-      setTodos((prev) => prev.filter((t) => t.id !== id));
+      setTodos((prev) => {
+        const next = prev.filter((t) => t.id !== id);
+        try {
+          localStorage.setItem(
+            "todoOrder",
+            JSON.stringify(next.map((t) => t.id))
+          );
+        } catch {}
+        return next;
+      });
     } catch {
       setError("Failed to delete todo");
     }
@@ -114,17 +194,24 @@ export default function TodoPage() {
             <div className="spinner" />
           </div>
         ) : (
-          <ul className="space-y-4 w-full">
-            {todos.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                onToggle={() => handleToggle(todo)}
-                onDelete={() => handleDelete(todo.id)}
-                onEdit={handleEdit}
-              />
-            ))}
-          </ul>
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <SortableContext
+              items={todos.map((t) => String(t.id))}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-4 w-full">
+                {todos.map((todo) => (
+                  <TodoItem
+                    key={todo.id}
+                    todo={todo}
+                    onToggle={() => handleToggle(todo)}
+                    onDelete={() => handleDelete(todo.id)}
+                    onEdit={handleEdit}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>

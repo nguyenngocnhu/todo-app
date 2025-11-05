@@ -1,6 +1,6 @@
 # Todo App — .NET API + React (Vite)
 
-This repository contains a small Todo application with a .NET Web API (Entity Framework Core + SQLite) and a React frontend (Vite + Tailwind + Axios).
+This repository contains a small, fully responsive Todo application built with a .NET Web API (Entity Framework Core + SQLite) and a React frontend (Vite + Tailwind + Axios).
 
 This README explains how to run the project locally (without Docker), how to test the API and UI, and includes a short API usage reference for graders.
 
@@ -69,37 +69,31 @@ The production static site will be available at `http://localhost:3000` in this 
 
 ---
 
-## Frontend quick README (todo-frontend)
-
-This project folder is `test.todo_frontend` in this repository. Below is a compact README for the frontend to include in the main README for graders.
-
-Requirements
-- Node.js 18+
-- npm
-- Backend: TodoApi running at http://localhost:5000
-
-Setup
-
-1. Install dependencies
-
-```bash
-cd test.todo_frontend
-npm install
-```
-
-2. Start dev server
-
-```bash
-npm run dev
-# or (legacy alias in some setups)
-npm start
-```
-
 3. Open the URL printed by Vite (usually http://localhost:5173). The app expects the backend at http://localhost:5000.
 
 Login
 - username: `admin`
 - password: `123`
+
+UI Login
+![alt text](login.png)
+UI Todo List
+![alt text](todolist.png)
+## Drag-and-drop (optional)
+
+The frontend includes an optional drag-and-drop feature (implemented with @dnd-kit) to reorder tasks. Reordering is client-side only and saved to the browser's localStorage so the order persists in the same browser. Server-side persistence is not implemented.
+
+### 🔐 Authentication note
+
+This Todo App is a **simple demo project** designed to demonstrate CRUD operations, frontend–backend integration, and RESTful API design using .NET 9 and React (Vite).  
+To keep it lightweight and easy to run locally, **no authentication or user management** is implemented in the API.
+
+**Key points:**
+- All API endpoints are public for local testing (no login required).
+- The login form in the frontend (`username: admin`, `password: 123`) is **only a visual mock** — it does not connect to any real authentication endpoint.
+- The “login” action simply stores a mock session in `localStorage` to simulate a logged-in flow for UI demonstration.
+
+**For production use**, a real authentication layer (such as ASP.NET Identity or JWT-based auth) should be implemented to protect the API routes.
 
 API endpoints used by the frontend
 - GET http://localhost:5000/api/todo          -> list todos
