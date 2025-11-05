@@ -1,0 +1,51 @@
+# Node
+node_modules/
+dist/
+build/
+.vite/
+.cache/
+
+# environment
+.env
+.env.*
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# .NET build artifacts
+bin/
+obj/
+publish/
+*.pdb
+*.dll
+*.exe
+
+# SQLite DB files (local dev databases)
+*.db
+*.db-shm
+*.db-wal
+
+# coverage
+coverage/
+coverage-final.json
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker overrides
+docker-compose.override.yml
+
