@@ -69,7 +69,7 @@ The production static site will be available at `http://localhost:3000` in this 
 
 ---
 
-3. Open the URL printed by Vite (usually http://localhost:5173). The app expects the backend at http://localhost:5000.
+Then, open the URL printed by Vite (usually http://localhost:5173). The app expects the backend at http://localhost:5000.
 
 Login
 - username: `admin`
