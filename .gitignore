@@ -25,10 +25,19 @@ publish/
 *.dll
 *.exe
 
-# # SQLite DB files (local dev databases)
-# *.db
-# *.db-shm
-# *.db-wal
+# Local SQLite DB files (local dev databases)
+# Ignore dev database files so local DBs are not accidentally committed
+*.db
+*.db-shm
+*.db-wal
+**/todo.db
+**/todo.db.bak
+
+# Dotnet publish/build output used by CI or local debugging (do not commit)
+**/build_output/
+
+# Visual Studio temporary files
+.vs/
 
 # coverage
 coverage/
@@ -41,6 +50,12 @@ coverage-final.json
 *.user
 *.userosscache
 *.sln.docstates
+
+# Local env files
+.env.local
+.env.development.local
+.env.test
+.secret
 
 # OS files
 .DS_Store

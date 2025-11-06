@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,10 +17,38 @@ builder.Services.AddCors(options =>
     {
         // Allow the common frontend dev origins and the static-serve port 3000 used for grading
         policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+              .WithHeaders("Authorization", "Content-Type", "Accept")
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
+
+// Configure JWT authentication (reads settings from appsettings or environment)
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (!string.IsNullOrEmpty(jwtKey))
+{
+    var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
+        };
+    });
+
+    builder.Services.AddAuthorization();
+}
 
 // Register EF Core DbContext with SQLite. Read connection string from configuration
 builder.Services.AddDbContext<TodoApi.Data.TodoContext>(options =>
@@ -45,6 +76,8 @@ app.UseHttpsRedirection();
 // Enable CORS (dev policy)
 app.UseCors("AllowDev");
 
+// Enable authentication middleware if configured
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

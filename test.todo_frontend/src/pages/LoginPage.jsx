@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api, { setAccessToken } from "../services/api";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -9,12 +10,16 @@ export default function LoginPage() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (username === "admin" && password === "123") {
-      localStorage.setItem("isLogged", "true");
-      navigate("/todo");
-    } else {
-      setError("Invalid username or password");
-    }
+    (async () => {
+      try {
+        const res = await api.post("/auth/login", { username, password });
+        const token = res.data.accessToken;
+        setAccessToken(token);
+        navigate("/todo");
+      } catch (err) {
+        setError("Invalid username or password");
+      }
+    })();
   }
 
   return (
