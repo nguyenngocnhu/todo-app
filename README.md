@@ -85,15 +85,25 @@ The frontend includes an optional drag-and-drop feature (implemented with @dnd-k
 
 ### 🔐 Authentication note
 
-This Todo App is a **simple demo project** designed to demonstrate CRUD operations, frontend–backend integration, and RESTful API design using .NET 9 and React (Vite).  
-To keep it lightweight and easy to run locally, **no authentication or user management** is implemented in the API.
+This Todo App is a **simple demo project** designed to demonstrate CRUD operations, frontend–backend integration, and RESTful API design using .NET 9 and React (Vite).
+
+Depending on how you run the sample, the project can use a lightweight JWT-based auth + HttpOnly refresh cookie flow for demo purposes. For production, integrate a full auth solution (ASP.NET Identity, OAuth, etc.).
 
 **Key points:**
-- All API endpoints are public for local testing (no login required).
-- The login form in the frontend (`username: admin`, `password: 123`) is **only a visual mock** — it does not connect to any real authentication endpoint.
-- The “login” action simply stores a mock session in `localStorage` to simulate a logged-in flow for UI demonstration.
+- The frontend includes a login UI for demonstration; depending on the running configuration the backend may issue JWT access tokens and set an HttpOnly `refreshToken` cookie.
+- Access tokens are sent in the Authorization header for protected API calls. When the access token expires the frontend calls `POST /api/auth/refresh` and the browser sends the HttpOnly refresh cookie automatically.
 
-**For production use**, a real authentication layer (such as ASP.NET Identity or JWT-based auth) should be implemented to protect the API routes.
+## Login & refresh (short)
+
+- Login: `POST /api/auth/login` with JSON `{ "username", "password" }`. Server sets an HttpOnly refresh cookie and may return an access token depending on configuration.
+- Use: Frontend sends the access token in the `Authorization: Bearer <token>` header for protected APIs. When the access token expires, call `POST /api/auth/refresh` — the browser will include the HttpOnly refresh cookie automatically to obtain a new access token.
+- Dev notes: Cookies with `SameSite=None` require `Secure` (HTTPS). For local HTTP development you may need to use `SameSite=Lax` or run the app over HTTPS (mkcert) to avoid the browser blocking the cookie.
+- Quick debug:
+  1. Open DevTools → Network, perform login and check the response `Set-Cookie` for `refreshToken`.
+  2. Confirm the cookie appears under Application → Cookies for the API origin.
+  3. If `/api/auth/refresh` returns 401, check console for “SameSite=None requires Secure”, verify CORS allows credentials, and ensure the frontend sends requests with credentials (axios/fetch with credentials).
+
+**For production use**, a robust authentication layer should be implemented and HttpOnly cookies configured to require HTTPS.
 
 API endpoints used by the frontend
 - GET http://localhost:5000/api/todo          -> list todos
