@@ -6,6 +6,12 @@ const api = axios.create({
   withCredentials: true // allow sending httpOnly refresh cookie
 });
 
+const refreshClient = axios.create({
+  baseURL: 'http://localhost:5000/api',
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true
+});
+
 let accessToken = null;
 let isRefreshing = false;
 let subscribers = [];
@@ -23,46 +29,84 @@ export function setAccessToken(token) {
   accessToken = token;
 }
 
+export async function doRefresh() {
+  const r = await refreshClient.post('/auth/refresh');
+  return r.data?.accessToken ?? null;
+}
+
 api.interceptors.request.use(config => {
+  const url = config.url || '';
+  if (url.endsWith('/auth/login') || url.endsWith('/auth/refresh')) return config;
   if (accessToken) config.headers['Authorization'] = `Bearer ${accessToken}`;
   return config;
 });
 
 api.interceptors.response.use(
-  res => res,
+  res => {
+    if (res.config.url?.endsWith('/auth/login')) {
+      const token = res.data?.accessToken ?? null;
+      if (token) {
+        accessToken = token;
+        setAccessToken(token);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('accessToken', token);
+        }
+      }
+    }
+    return res;
+  },
   async err => {
     const originalRequest = err.config;
     if (!originalRequest) return Promise.reject(err);
 
     if (err.response?.status === 401 && !originalRequest._retry) {
+      const reqUrl = originalRequest.url || '';
+      if (reqUrl.endsWith('/auth/refresh')) {
+        accessToken = null;
+        onAccessTokenFetched(null);
+        if (typeof globalThis !== 'undefined' && globalThis.location)
+          globalThis.location.href = '/';
+        return Promise.reject(err);
+      }
+      originalRequest._retry = true;
       if (isRefreshing) {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
           addSubscriber(token => {
+            if (!token) return reject(new Error('No token after refresh'));
             originalRequest.headers['Authorization'] = 'Bearer ' + token;
             resolve(api(originalRequest));
           });
         });
       }
 
-      originalRequest._retry = true;
       isRefreshing = true;
       try {
-        const r = await api.post('/auth/refresh');
-        const newToken = r.data.accessToken;
-        setAccessToken(newToken);
+        const r = await refreshClient.post('/auth/refresh');
+        const newToken = r.data?.accessToken ?? null;
+        accessToken = newToken;
+        setAccessToken(newToken); 
         onAccessTokenFetched(newToken);
+        if (newToken) {
+          originalRequest.headers['Authorization'] = 'Bearer ' + newToken;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('accessToken', newToken);
+          }
+        }
         return api(originalRequest);
       } catch (refreshErr) {
-        setAccessToken(null);
-        window.location.href = '/login';
-        return Promise.reject(refreshErr);
+        accessToken = null;
+        onAccessTokenFetched(null);
+        if (typeof globalThis !== 'undefined' && globalThis.location)
+          globalThis.location.href = '/';
+        throw refreshErr;
       } finally {
         isRefreshing = false;
       }
     }
 
-    return Promise.reject(err);
+    throw err;
   }
 );
+
 
 export default api;

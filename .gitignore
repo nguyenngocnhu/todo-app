@@ -30,7 +30,6 @@ publish/
 *.db
 *.db-shm
 *.db-wal
-**/todo.db
 **/todo.db.bak
 
 # Dotnet publish/build output used by CI or local debugging (do not commit)

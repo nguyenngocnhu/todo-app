@@ -1,13 +1,12 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import TodoPage from "./pages/TodoPage";
-
-function isLogged() {
-  return localStorage.getItem("isLogged") === "true";
-}
+import { useAuth } from "./AuthContext";
 
 function RequireAuth({ children }) {
-  if (!isLogged()) return <Navigate to="/" />;
+  const auth = useAuth();
+  if (auth.initializing) return null;
+  if (!auth.isAuthenticated) return <Navigate to="/" />;
   return children;
 }
 

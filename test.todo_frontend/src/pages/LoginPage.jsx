@@ -1,20 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api, { setAccessToken } from "../services/api";
+import { useAuth } from "../AuthContext";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const auth = useAuth();
 
   function handleSubmit(e) {
     e.preventDefault();
     (async () => {
       try {
-        const res = await api.post("/auth/login", { username, password });
-        const token = res.data.accessToken;
-        setAccessToken(token);
+        await auth.login(username, password);
         navigate("/todo");
       } catch (err) {
         setError("Invalid username or password");
